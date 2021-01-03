@@ -1,10 +1,10 @@
-# ============ Player Creation ========
+# ============ Player basics ========
 create_players <- function(player_names = paste0("player_", c(1L, 2L)), 
-                           starting_balance = 20){
+                           starting_balance = 20L){
   tibble(ID = seq.int(0, length(player_names)-1),
          name = player_names, 
          balance = starting_balance,
-         position = 0,
+         position = 0L,
          )
 }
 testthat::test_that("Player creation", {
@@ -15,11 +15,26 @@ testthat::test_that("Player creation", {
   testthat::expect_equal(sum(players3 %>% pull(balance)), 30)
 })
 
-# ============ Balance handlers =======
-change_balance <- function(.players, player, amount){
+set_player_field <- function(.players, player_id, field, value, method = "add", mod = 0L){
   # Sometimes dplyr syntax just complicates things...
-  .players[.players$ID == player, "balance"] <- .players[.players$ID == player, "balance"] + amount
+  if(method == "add") {
+    .players[.players$ID == player_id, field] <- .players[.players$ID == player_id, field] + value
+  } else if(method == "mod"){
+    .players[.players$ID == player_id, field] <- (.players[.players$ID == player_id, field] + value) %% mod
+  } else if(method == "set"){
+    .players[.players$ID == player_id, field] <- value
+  }
   .players
+}
+
+get_player_field <- function(.players, player_id, field){
+  .players %>% filter(ID == player_id) %>% pull(field)
+}
+
+# ============ Balance handlers =======
+change_balance <- function(.players, player_id, amount){
+  .players %>% set_player_field(player_id = player_id, field = "balance", 
+                                   value = amount, method = "add")
 }
 testthat::test_that("Change of balances",{
   players <- create_players()
@@ -55,6 +70,36 @@ testthat::test_that("Transfers",{
   })
 
 # ============ Chance cards ===========
-chance_card <- function(player){
+chance_card <- function(player_id){
+  return()
+}
+
+# ============ Board movement =========
+make_move <- function(.players, player_id){
+  stopifnot(player_id %in% (.players %>% pull(ID)))
+  .players %>% set_player_field(player_id = player_id, field = "position", 
+                                   value = sample(1:6, 1), method = "mod", 
+                                   mod = 24) 
+}
+testthat::test_that("Player move correctly", {
+set.seed(1234)
+players <- create_players()
+testthat::expect_equal(players %>% make_move(0)%>% pull(position), c(4,0))
+testthat::expect_equal(players %>% make_move(0) %>% make_move(0) %>% 
+                         make_move(0) %>% make_move(0) %>% make_move(0) %>% 
+                         make_move(0) %>% make_move(0) %>% make_move(0) %>% 
+                         make_move(1) %>% make_move(1) %>% make_move(1) %>% 
+                         make_move(1) %>% pull(position),
+                       c(9,16))
+testthat::expect_error(players %>% make_move(2))
+testthat::expect_error(players %>% make_move("p1"))
+})
+
+get_position <- function(.players, player_id){
+  .players %>% get_player_field(player_id = player_id, field = "position")
+}
+
+imprison <- function(.players, player_id){
+  # TODO
   return()
 }
