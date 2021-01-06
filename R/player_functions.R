@@ -1,36 +1,77 @@
 # ============ Player basics ========
 create_players <- function(player_names = paste0("player_", c(1L, 2L)), 
                            starting_balance = 20L){
-  tibble(ID = seq.int(0, length(player_names)-1),
-         name = player_names, 
-         balance = starting_balance,
-         position = 0L,
-         )
+  players <- tibble(
+    ID = seq.int(0, length(player_names)-1), #zero-based index to allow mod-calcs
+    name = player_names, 
+    balance = starting_balance,
+    position = 0L,
+    alive = TRUE,
+    imprisoned = FALSE,
+    get_out_of_jail_card = FALSE
+    )
+  if(verbose){print(players)}
+  return(players)
 }
 testthat::test_that("Player creation", {
+  verbose = FALSE
   players2 <- create_players()
-  testthat::expect_equal(dim(players2), c(2,4))
+  testthat::expect_equal(dim(players2), c(2,7))
   players3 <- create_players(c("p1", "p2", "p3"),10)
   testthat::expect_length(players3$ID, 3)
   testthat::expect_equal(sum(players3 %>% pull(balance)), 30)
 })
 
+# ============ Getters and setters ====
 set_player_field <- function(.players, player_id, field, value, method = "add", mod = 0L){
-  # Sometimes dplyr syntax just complicates things...
+  stopifnot(player_id %in% (.players %>% pull(ID)))
+  stopifnot(field %in% colnames(.players))
+  # Sometimes dplyr syntax just complicates things... 
+  # mutate(replace... freaks out on += type operations
   if(method == "add") {
     .players[.players$ID == player_id, field] <- .players[.players$ID == player_id, field] + value
   } else if(method == "mod"){
+    stopifnot(mod > 1L)
     .players[.players$ID == player_id, field] <- (.players[.players$ID == player_id, field] + value) %% mod
   } else if(method == "set"){
     .players[.players$ID == player_id, field] <- value
+  } else {
+    stop("Invalid method passed")
   }
   .players
 }
 
 get_player_field <- function(.players, player_id, field){
+  stopifnot(player_id %in% (.players %>% pull("ID")))
+  stopifnot(field %in% colnames(.players))
   .players %>% filter(ID == player_id) %>% pull(field)
 }
 
+testthat::test_that("Player getters and setters", {
+  verbose = FALSE
+  players2 <- create_players(player_names = c("a", "b"), starting_balance = 10)
+  testthat::expect_equal(players2 %>% get_player_field(0,"name") , "a")
+  testthat::expect_equal(players2 %>% get_player_field(1,"balance") , 10)
+  testthat::expect_true(players2 %>% get_player_field(1,"alive"))
+  testthat::expect_false(players2 %>% get_player_field(1,"get_out_of_jail_card"))
+  testthat::expect_error(players2 %>% get_player_field(2, "balance"))
+  testthat::expect_error(players2 %>% get_player_field(1, "balanc"))
+  testthat::expect_false(players2 %>% 
+                           set_player_field(1, "alive", FALSE, method = "set") %>% 
+                           get_player_field(1,"alive"))
+  testthat::expect_equal(players2 %>% 
+                           set_player_field(0, "balance", 5, method = "add") %>% 
+                           get_player_field(0, "balance"), 15)
+  testthat::expect_error(players2 %>% 
+                           set_player_field(0, "balance", 5, method = "mod"))
+  testthat::expect_equal(players2 %>% 
+                           set_player_field(0, "position", 50, method = "mod", mod = 24) %>% 
+                           get_player_field(0, "position"), 2)
+  testthat::expect_error(players2 %>% 
+                           set_player_field(0, "balance", 5, method = "fail"))
+  players4 <- create_players(letters[1:5])
+  testthat::expect_equal(players4 %>% get_player_field(3, "name"), "d")
+})
 # ============ Balance handlers =======
 change_balance <- function(.players, player_id, amount){
   .players %>% set_player_field(player_id = player_id, field = "balance", 
@@ -69,10 +110,6 @@ testthat::test_that("Transfers",{
                          c(0,40))
   })
 
-# ============ Chance cards ===========
-chance_card <- function(player_id){
-  return()
-}
 
 # ============ Board movement =========
 make_move <- function(.players, player_id){
@@ -99,7 +136,49 @@ get_position <- function(.players, player_id){
   .players %>% get_player_field(player_id = player_id, field = "position")
 }
 
-imprison <- function(.players, player_id){
-  # TODO
-  return()
+# ============ Prison system ==========
+imprison <- function(.players, player_id, jail_position = 6){
+  if(verbose){write(paste0("Player ", player_id, " goes to prison!"),"")}
+  .players %>% 
+    set_player_field(player_id, method = "set", field = "imprisoned", value = TRUE) %>% 
+    set_player_field(player_id, method = "set", field = "position", value = jail_position)
 }
+
+unprison <- function(.players, player_id){
+  if(.players %>% get_player_field(player_id, "get_out_of_jail_card")){ # Use card
+    if(verbose){write(paste0("Releasing player ", player_id, " using card!"),"")}
+    .players %<>% 
+      set_player_field(player_id, method = "set", field = "imprisoned", value = FALSE) %>%
+      set_player_field(player_id, method = "set", field = "get_out_of_jail_card", value = FALSE) 
+  } else if((.players %>% get_player_field(player_id, "balance")) > 1){ # Bail your way out...
+    if(verbose){write(paste0("Bailing player ", player_id, " out of prison!"),"")}
+    .players %<>% 
+      set_player_field(player_id, method = "set", field = "imprisoned", value = FALSE) %>%
+      change_balance(player_id, amount = -1L)
+  } else {
+    if(verbose){write(paste0("Can't unprison player ", player_id, ", not enough money!"),"")}
+  }
+  # If player only has 1 money and no card will remain in jail, hoping for rent money!
+  # May result in sit. where player remains forever since no lots are owned but this
+  # isn't detailed in the rules and rather unlikely...
+  return(.players)
+}
+
+testthat::test_that("Prison system", {
+  verbose <- FALSE
+  players3 <- create_players(letters[1:3], 2) %>% 
+    imprison(0) %>% imprison(1) %>% imprison(2) %>% 
+    set_player_field(0, method = "set", field = "get_out_of_jail_card", value = TRUE) %>% 
+    change_balance(2, -1) %>% 
+    unprison(0) %>% unprison(1) %>% unprison(2)
+  testthat::expect_true(players3 %>% get_player_field(2, "imprisoned"))
+  testthat::expect_equal(players3 %>% get_position(0), 6)
+  testthat::expect_false(players3 %>% get_player_field(0, "imprisoned"))
+  testthat::expect_false(players3 %>% get_player_field(0, "get_out_of_jail_card"))
+  testthat::expect_false(players3 %>% get_player_field(1, "imprisoned"))
+  testthat::expect_equal(players3 %>% get_player_field(1, "balance"), 1)
+  testthat::expect_true(players3 %>% get_player_field(2, "imprisoned"))
+  testthat::expect_equal(players3 %>% get_player_field(2, "balance"), 1)
+})
+
+
