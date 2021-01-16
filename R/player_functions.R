@@ -14,7 +14,7 @@ create_players <- function(player_names = paste0("player_", c(1L, 2L)),
   return(players)
 }
 testthat::test_that("Player creation", {
-  verbose = FALSE
+  verbose <<- FALSE
   players2 <- create_players()
   testthat::expect_equal(dim(players2), c(2,7))
   players3 <- create_players(c("p1", "p2", "p3"),10)
@@ -48,7 +48,7 @@ get_player_field <- function(.players, player_id, field){
 }
 
 testthat::test_that("Player getters and setters", {
-  verbose = FALSE
+  verbose <<- FALSE
   players2 <- create_players(player_names = c("a", "b"), starting_balance = 10)
   testthat::expect_equal(players2 %>% get_player_field(0,"name") , "a")
   testthat::expect_equal(players2 %>% get_player_field(1,"balance") , 10)
@@ -165,7 +165,7 @@ unprison <- function(.players, player_id){
 }
 
 testthat::test_that("Prison system", {
-  verbose <- FALSE
+  verbose <<- FALSE
   players3 <- create_players(letters[1:3], 2) %>% 
     imprison(0) %>% imprison(1) %>% imprison(2) %>% 
     set_player_field(0, method = "set", field = "get_out_of_jail_card", value = TRUE) %>% 
@@ -182,3 +182,79 @@ testthat::test_that("Prison system", {
 })
 
 
+
+# ============ End game  ==============
+end_game_stats <- function(.players, .board, premature_end){
+  # ============ Winner calculations ====
+  winning_balance <- .players %>% pull(balance) %>% max()
+  winners <- .players %>% filter(balance == winning_balance) 
+  if(nrow(winners) == 1){                                                       # Only one player with max balance
+    win_type <- "Balance"
+    winner <- winners %>% pull(ID) 
+  } else {
+    winners_lots <- .board %>% 
+      filter(owner %in% winners) %>% 
+      group_by(owner) %>% 
+      summarise(lot_count = n(), lot_value = sum(prize))
+    if(length(which.max(winners_lots$lot_count)) == 1){                         # Player with most lots win
+      win_type <- "Count"
+      winner <- winners_lots %>% 
+        filter(lots_count == max(lots_count)) %>% 
+        pull(owner) 
+    } else {
+      if(length(which.max(winners_lots$lot_value)) == 1){                       # One player with the highest lot value
+        win_type <- "Value"
+        winner <- winners_lots %>% 
+          filter(lots_value == max(lots_value)) %>% 
+          pull(owner)
+      } else {
+        win_type <- "Chance"
+        winner <- sample(winners$owner[which.max(winners_lots$lot_value)], 1)   # Worst case sample a winner
+      }
+    }
+  }
+  # ============ Looser calculations ====
+  loosing_balance <- .players %>% pull(balance) %>% min()
+  loosers <- .players %>% filter(balance == loosing_balance)
+  if(length(loosers %>% pull(ID)) == 1){                                        # Either loosing on balance...
+    looser <- loosers %>% pull(ID)
+  } else {                                                                      # or by chance
+    looser <- sample(loosers %>% pull(ID), 1)
+  }
+  # ============ Misc ===================
+  all_imprisoned <- .players %>% pull(imprisoned) %>% all() %>% isTRUE()
+  # ============ Board calculations =====
+  winning_lots <- .board %>% filter(owner == winner) %>% pull(ID)
+  loosing_lots <- .board %>% filter(owner %in% looser) %>% pull(ID)
+  # ============ Printing ===============
+  if(verbose){
+    if(premature_end){
+      write(paste("Round ended in defeat for player", looser, "!"), "")
+    }
+    if(all_imprisoned){
+      write("All players in prison without bail funds.")
+    }
+    write(paste("Player", winner, "won with balance",
+                winning_balance, "and", length(winning_lots), "owned lots.",
+                "\nPlayer", looser, "lost with balance", 
+                loosing_balance, "."), "")
+  }
+  # ============ Return =================
+  list(winner          = winner,
+       winning_balance = winning_balance, 
+       winning_lots    = winning_lots,
+       win_type        = win_type,
+       looser          = looser,
+       loosing_balance = loosing_balance, 
+       loosing_lots    = loosing_lots,
+       premature_end   = premature_end,
+       all_imprisoned  = all_imprisoned
+       )
+}
+
+testthat::test_that("End game is correct", {
+  verbose <- FALSE
+  t_players <- create_players(letters[1:5])
+  board <- create_board()
+  # this is gonna take a while....
+})
