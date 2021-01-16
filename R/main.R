@@ -4,10 +4,8 @@ library(magrittr)
 source("R/board_functions.R")
 source("R/player_functions.R")
 
-# ============ Set up =====================
-verbose = TRUE
-max_rounds <- 100
 main <- function(nplayers, max_rounds, verbose){
+  # ============ Set up =====================
   players <- create_players(letters[1:nplayers], 22 - (2 * nplayers))
   board <- create_board()
   current_player_id <- 0L
@@ -80,3 +78,8 @@ main <- function(nplayers, max_rounds, verbose){
   }
   end_game_stats(players, board, rounds==(max_rounds*nplayers))
 }
+
+
+games <- lapply(1:3, function(x){
+  main(nplayers = 3, verbose = FALSE, max_rounds = 100)
+  })
