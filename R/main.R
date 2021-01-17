@@ -6,11 +6,11 @@ source("R/player_functions.R")
 
 main <- function(nplayers, max_rounds, verbose){
   # ============ Set up =====================
-  
   players <- create_players(letters[1:nplayers], 22 - (2 * nplayers))
   board <- create_board()
   current_player_id <- 0L
   rounds <- 0
+  
   # ============ Actual Game ================
   while(rounds < (max_rounds * nplayers) -1){
     #if(rounds == 33){browser()}
@@ -77,8 +77,6 @@ main <- function(nplayers, max_rounds, verbose){
     current_player_id <- (current_player_id +1) %% nplayers
     rounds <- rounds + 1
   }
-  aboard <<- board
-  aplayers <<- players
   end_game_stats(players, board, rounds==(max_rounds*nplayers))
 }
 
@@ -90,5 +88,5 @@ main <- function(nplayers, max_rounds, verbose){
 
 games <- bind_rows(games)
 
-set.seed(26)
+set.seed(116)
 main(nplayers = 3, verbose = FALSE, max_rounds = 100)
