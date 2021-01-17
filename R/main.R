@@ -6,12 +6,14 @@ source("R/player_functions.R")
 
 main <- function(nplayers, max_rounds, verbose){
   # ============ Set up =====================
+  
   players <- create_players(letters[1:nplayers], 22 - (2 * nplayers))
   board <- create_board()
   current_player_id <- 0L
   rounds <- 0
   # ============ Actual Game ================
   while(rounds < (max_rounds * nplayers) -1){
+    #if(rounds == 33){browser()}
     old_position   <- players %>% get_position(current_player_id)
     
     if(players %>% get_player_field(current_player_id, "imprisoned")){          # Attempt unprison prior to move
@@ -24,7 +26,6 @@ main <- function(nplayers, max_rounds, verbose){
         players %<>% change_balance(current_player_id, 2) 
       }
       position_type  <- board %>% get_board_field(new_position, "type")
-      
       # ============ Lots a' logic ==============
       if(position_type == "lot"){
         position_owner <- board %>% get_board_field(new_position, "owner")
@@ -76,10 +77,18 @@ main <- function(nplayers, max_rounds, verbose){
     current_player_id <- (current_player_id +1) %% nplayers
     rounds <- rounds + 1
   }
+  aboard <<- board
+  aplayers <<- players
   end_game_stats(players, board, rounds==(max_rounds*nplayers))
 }
 
+ games <- lapply(1:200, function(x){
+   print(x)
+   set.seed(x)
+   main(nplayers = 3, verbose = FALSE, max_rounds = 100)
+   })
 
-games <- lapply(1:3, function(x){
-  main(nplayers = 3, verbose = FALSE, max_rounds = 100)
-  })
+games <- bind_rows(games)
+
+set.seed(26)
+main(nplayers = 3, verbose = FALSE, max_rounds = 100)
