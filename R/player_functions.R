@@ -193,19 +193,19 @@ end_game_stats <- function(.players, .board, premature_end){
     winner <- winners %>% pull(ID) 
   } else {
     winners_lots <- .board %>% 
-      filter(owner %in% winners) %>% 
+      filter(owner %in% (winners %>% pull(ID))) %>% 
       group_by(owner) %>% 
-      summarise(lot_count = n(), lot_value = sum(prize))
-    if(length(which.max(winners_lots$lot_count)) == 1){                         # Player with most lots win
+      summarise(lot_count = n(), lot_value = sum(price))
+    if(length(which(winners_lots$lot_count==max(winners_lots$lot_count))) == 1){# Player with most lots win
       win_type <- "Count"
       winner <- winners_lots %>% 
         filter(lots_count == max(lots_count)) %>% 
         pull(owner) 
     } else {
-      if(length(which.max(winners_lots$lot_value)) == 1){                       # One player with the highest lot value
+      if(length(which(winners_lots$lot_value==max(winners_lots$lot_value))) == 1){                       # One player with the highest lot value
         win_type <- "Value"
         winner <- winners_lots %>% 
-          filter(lots_value == max(lots_value)) %>% 
+          filter(lot_value == max(lot_value)) %>% 
           pull(owner)
       } else {
         win_type <- "Chance"
@@ -240,16 +240,16 @@ end_game_stats <- function(.players, .board, premature_end){
                 loosing_balance, "."), "")
   }
   # ============ Return =================
-  list(winner          = winner,
-       winning_balance = winning_balance, 
-       winning_lots    = winning_lots,
-       win_type        = win_type,
-       looser          = looser,
-       loosing_balance = loosing_balance, 
-       loosing_lots    = loosing_lots,
-       premature_end   = premature_end,
-       all_imprisoned  = all_imprisoned
-       )
+  tibble(winner          = winner,
+         winning_balance = winning_balance, 
+         winning_lots    = list(winning_lots),
+         win_type        = win_type,
+         looser          = looser,
+         loosing_balance = loosing_balance, 
+         loosing_lots    = list(loosing_lots),
+         premature_end   = premature_end,
+         all_imprisoned  = all_imprisoned
+         )
 }
 
 testthat::test_that("End game is correct", {
