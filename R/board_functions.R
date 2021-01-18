@@ -50,6 +50,9 @@ plot_board <- function(board){
 change_lot_owner <- function(.board, player_id, lot_id){
   stopifnot(.board %>% filter(ID == lot_id) %>% pull(type) == "lot")
   stopifnot(is.numeric(lot_id) & is.numeric(player_id))
+  if(verbose %in% c("all", "board")){
+    write(paste("Lot", lot_id, "now owned by player", player_id),"")
+  }
   .board %>% mutate(owner = replace(owner, ID == lot_id, player_id))
 }
 testthat::test_that("Change lot owner", {

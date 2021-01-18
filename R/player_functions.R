@@ -10,7 +10,7 @@ create_players <- function(player_names = paste0("player_", c(1L, 2L)),
     imprisoned = FALSE,
     get_out_of_jail_card = FALSE
     )
-  if(verbose){print(players)}
+  if(verbose %in% c("all", "creation", "players")){print(players)}
   return(players)
 }
 testthat::test_that("Player creation", {
@@ -138,7 +138,7 @@ get_position <- function(.players, player_id){
 
 # ============ Prison system ==========
 imprison <- function(.players, player_id, jail_position = 6){
-  if(verbose){write(paste0("Player ", player_id, " goes to prison!"),"")}
+  if(verbose %in% c("all", "players")){write(paste0("Player ", player_id, " goes to prison!"),"")}
   .players %>% 
     set_player_field(player_id, method = "set", field = "imprisoned", value = TRUE) %>% 
     set_player_field(player_id, method = "set", field = "position", value = jail_position)
@@ -146,17 +146,17 @@ imprison <- function(.players, player_id, jail_position = 6){
 
 unprison <- function(.players, player_id){
   if(.players %>% get_player_field(player_id, "get_out_of_jail_card")){ # Use card
-    if(verbose){write(paste0("Releasing player ", player_id, " using card!"),"")}
+    if(verbose %in% c("all", "players")){write(paste0("Releasing player ", player_id, " using card!"),"")}
     .players %<>% 
       set_player_field(player_id, method = "set", field = "imprisoned", value = FALSE) %>%
       set_player_field(player_id, method = "set", field = "get_out_of_jail_card", value = FALSE) 
   } else if((.players %>% get_player_field(player_id, "balance")) > 1){ # Bail your way out...
-    if(verbose){write(paste0("Bailing player ", player_id, " out of prison!"),"")}
+    if(verbose %in% c("all", "players")){write(paste0("Bailing player ", player_id, " out of prison!"),"")}
     .players %<>% 
       set_player_field(player_id, method = "set", field = "imprisoned", value = FALSE) %>%
       change_balance(player_id, amount = -1L)
   } else {
-    if(verbose){write(paste0("Can't unprison player ", player_id, ", not enough money!"),"")}
+    if(verbose %in% c("all", "players")){write(paste0("Can't unprison player ", player_id, ", not enough money!"),"")}
   }
   # If player only has 1 money and no card will remain in jail, hoping for rent money!
   # May result in sit. where player remains forever since no lots are owned but this
@@ -229,7 +229,7 @@ end_game_stats <- function(.players, .board, premature_end){
   winning_lots <- .board %>% filter(owner == winner) %>% pull(ID)
   loosing_lots <- .board %>% filter(owner %in% looser) %>% pull(ID)
   # ============ Printing ===============
-  if(verbose){
+  if(verbose %in% c("all", "players", "end_game")){
     if(premature_end){
       write(paste("Round ended in defeat for player", looser, "!"), "")
     }
@@ -255,7 +255,7 @@ end_game_stats <- function(.players, .board, premature_end){
 }
 
 testthat::test_that("End game is correct", {
-  verbose <- FALSE
+  verbose <<- FALSE
   t_players <- create_players(letters[1:5])
   board <- create_board()
   # this is gonna take a while....
