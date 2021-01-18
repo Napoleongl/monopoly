@@ -1,9 +1,3 @@
-# ============ Imports ====================
-library(tidyverse)
-library(magrittr)
-source("R/board_functions.R")
-source("R/player_functions.R")
-
 main <- function(nplayers, max_rounds, verbose){
   # ============ Set up =====================
   players <- create_players(letters[1:nplayers], 22 - (2 * nplayers))
@@ -80,16 +74,3 @@ main <- function(nplayers, max_rounds, verbose){
   }
   end_game_stats(players, board, rounds==(max_rounds*nplayers))
 }
-
-#  games <- lapply(1:200, function(x){
-#    print(x)
-#    set.seed(x)
-#    main(nplayers = 3, verbose = FALSE, max_rounds = 100)
-#    })
-# 
-# games <- bind_rows(games)
-error_round_finder  <-FALSE
-error_round <- 999
-end_game_browser <- TRUE
-set.seed(116)
-main(nplayers = 3, verbose = FALSE, max_rounds = 100)
