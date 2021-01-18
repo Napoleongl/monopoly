@@ -186,7 +186,7 @@ testthat::test_that("Prison system", {
 # ============ End game  ==============
 end_game_stats <- function(.players, .board, premature_end){
   # ============ Winner calculations ====
-  if(end_game_browser) {browser()}
+  if(exists("end_game_browser")) {browser()}
   winning_balance <- .players %>% pull(balance) %>% max()
   winners <- .players %>% filter(balance == winning_balance) 
   if(nrow(winners) == 1){                                                       # Only one player with max balance
