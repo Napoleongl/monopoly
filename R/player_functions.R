@@ -186,6 +186,7 @@ testthat::test_that("Prison system", {
 # ============ End game  ==============
 end_game_stats <- function(.players, .board, premature_end){
   # ============ Winner calculations ====
+  if(end_game_browser) {browser()}
   winning_balance <- .players %>% pull(balance) %>% max()
   winners <- .players %>% filter(balance == winning_balance) 
   if(nrow(winners) == 1){                                                       # Only one player with max balance
@@ -202,14 +203,15 @@ end_game_stats <- function(.players, .board, premature_end){
         filter(lots_count == max(lots_count)) %>% 
         pull(owner) 
     } else {
-      if(length(which(winners_lots$lot_value==max(winners_lots$lot_value))) == 1){                       # One player with the highest lot value
+      most_valued_owners <- which(winners_lots$lot_value==max(winners_lots$lot_value))
+      if(length(most_valued_owners) == 1){                                      # One player with the highest lot value
         win_type <- "Value"
         winner <- winners_lots %>% 
           filter(lot_value == max(lot_value)) %>% 
           pull(owner)
-      } else {
+      } else {                                                                  # Worst case sample a winner
         win_type <- "Chance"
-        winner <- sample(winners$owner[which.max(winners_lots$lot_value)], 1)   # Worst case sample a winner
+        winner <- sample(winners$ID[most_valued_owners], 1)   
       }
     }
   }
