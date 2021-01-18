@@ -56,6 +56,7 @@ change_lot_owner <- function(.board, player_id, lot_id){
   .board %>% mutate(owner = replace(owner, ID == lot_id, player_id))
 }
 testthat::test_that("Change lot owner", {
+  verbose <<- FALSE
   board <- create_board()
   testthat::expect_equal(board %>% 
                            change_lot_owner(1, 1) %>% 
