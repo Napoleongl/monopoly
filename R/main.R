@@ -1,14 +1,13 @@
-main <- function(nplayers, max_rounds, verbose){
+main <- function(nplayers, max_rounds, verbose = FALSE){
   # ============ Set up =====================
   players <- create_players(letters[1:nplayers], 22 - (2 * nplayers))
   board <- create_board()
   current_player_id <- 0L
   rounds <- 0
-  #browser()
   # ============ Actual Game ================
   while(rounds < (max_rounds * nplayers) -1){
-    if(error_round_finder) {print(rounds)}
-    if(rounds == error_round){browser()}
+    if(exists("error_round_finder")) {print(rounds)}
+    if(exists("error_round") && rounds == error_round){browser()}
     old_position   <- players %>% get_position(current_player_id)
     
     if(players %>% get_player_field(current_player_id, "imprisoned")){          # Attempt unprison prior to move
@@ -31,7 +30,7 @@ main <- function(nplayers, max_rounds, verbose){
             players %<>% 
               change_balance(current_player_id, -1 * lot_price) 
           } else {                                                              # Needs balance > 1 after buying lot
-            if(verbose){
+            if(verbose %in% c("all", "game")){
               write(paste(current_player_id, "looses due to insufficient funds"),"")
             }
             break
