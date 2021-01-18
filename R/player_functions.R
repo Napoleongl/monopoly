@@ -200,7 +200,7 @@ end_game_stats <- function(.players, .board, premature_end){
     if(length(which(winners_lots$lot_count==max(winners_lots$lot_count))) == 1){# Player with most lots win
       win_type <- "Count"
       winner <- winners_lots %>% 
-        filter(lots_count == max(lots_count)) %>% 
+        filter(lot_count == max(lot_count)) %>% 
         pull(owner) 
     } else {
       most_valued_owners <- which(winners_lots$lot_value==max(winners_lots$lot_value))
