@@ -10,10 +10,11 @@ main <- function(nplayers, max_rounds, verbose){
   board <- create_board()
   current_player_id <- 0L
   rounds <- 0
-  
+  #browser()
   # ============ Actual Game ================
   while(rounds < (max_rounds * nplayers) -1){
-    #if(rounds == 33){browser()}
+    if(error_round_finder) {print(rounds)}
+    if(rounds == error_round){browser()}
     old_position   <- players %>% get_position(current_player_id)
     
     if(players %>% get_player_field(current_player_id, "imprisoned")){          # Attempt unprison prior to move
@@ -80,13 +81,15 @@ main <- function(nplayers, max_rounds, verbose){
   end_game_stats(players, board, rounds==(max_rounds*nplayers))
 }
 
- games <- lapply(1:200, function(x){
-   print(x)
-   set.seed(x)
-   main(nplayers = 3, verbose = FALSE, max_rounds = 100)
-   })
-
-games <- bind_rows(games)
-
+#  games <- lapply(1:200, function(x){
+#    print(x)
+#    set.seed(x)
+#    main(nplayers = 3, verbose = FALSE, max_rounds = 100)
+#    })
+# 
+# games <- bind_rows(games)
+error_round_finder  <-FALSE
+error_round <- 999
+end_game_browser <- TRUE
 set.seed(116)
 main(nplayers = 3, verbose = FALSE, max_rounds = 100)
