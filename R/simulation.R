@@ -14,9 +14,9 @@ option_list <- list(
   make_option(c("-g", "--games"), type = "integer", default = 10,
               help = "Number of games played per core [default %default]",
               dest = "ngames"),
-  make_option(c("-s", "--savefile"), type = "character", default = "data/games_data.Rdata",
+  make_option(c("-s", "--savedir"), type = "character", default = "data",
               help = "Path to store simulation result [default %default]",
-              dest = "save_file")
+              dest = "save_dir")
 )
 
 
@@ -25,8 +25,11 @@ opts       <- parse_args(opt_parser);
 
 # ============ Set up =====================
 suppressPackageStartupMessages(library(pbapply))
-suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(tidyverse, warn.conflicts = FALSE))
 suppressPackageStartupMessages(library(magrittr))
+
+options(dplyr.summarise.inform = FALSE)
+pbo = pboptions(type="timer", char = "=", label = "Simulation", style = 3)
 
 source("R/board_functions.R")
 source("R/player_functions.R")
@@ -46,7 +49,9 @@ games <- pblapply(X = 1L:total_games, cl = opts$ncores, FUN = function(x){
 
 games_data <- bind_rows(games)
 
-save(games_data, opts, file = opts$save_file)
-write(paste0("Simulation done, results saved to ", getwd(), "/",opts$save_file),
+if(!dir.exists(opts$save_dir)){dir.create(opts$save_dir)}
+save_file <- paste0(opts$save_dir,"/games_data_p",opts$nplayer, "_g", total_games, ".Rdata")
+save(games_data, opts, file = save_file)
+write(paste0("Simulation done, results saved to ", getwd(), "/", save_file),
       "")
 # ============ Finished ===================
