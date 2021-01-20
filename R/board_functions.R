@@ -34,15 +34,19 @@ create_board <- function(){
   )
 }
 
+lot_colours <- setNames(c("paleturquoise1", "paleturquoise3",
+                          "yellow2", "yellow3",
+                          "darkseagreen1", "darkseagreen4", 
+                          "mediumorchid1", "darkorchid3",
+                          "grey15", "grey95"),
+                        c(letters[1:8], "special", "chance"))
+
 plot_board <- function(board){
-  board_colours <- c(a = "paleturquoise1", b = "green2", c = "firebrick2",
-                     d = "gold", e = "palevioletred4", f = "magenta2", 
-                     g = "gold3", h ="slateblue2", special = "grey15", chance = "grey95")
   ggplot(board) +
     aes(xmin =x, ymin=y,, ymax =y+1, xmax=x+1, x=x, y=y+1,fill = lot_group, label = name) +
     geom_rect(color = "grey20") +
     geom_label(fill = alpha("grey95",.75), vjust = "top", hjust = "left") +
-    scale_fill_manual(values = board_colours) +
+    scale_fill_manual(values = lot_colours) +
     theme_void() +
     theme(legend.position = "none")
 }
