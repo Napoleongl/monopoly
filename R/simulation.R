@@ -51,7 +51,8 @@ games_data <- bind_rows(games)
 
 if(!dir.exists(opts$save_dir)){dir.create(opts$save_dir)}
 save_file <- paste0(opts$save_dir,"/games_data_p",opts$nplayer, "_g", total_games, ".Rdata")
-save(games_data, opts, file = save_file)
+save_opts <- opts # as to not overwrite analysis opts when re-loaded
+save(games_data, save_opts, file = save_file)
 write(paste0("Simulation done, results saved to ", getwd(), "/", save_file),
       "")
 # ============ Finished ===================
