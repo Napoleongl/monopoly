@@ -27,8 +27,7 @@ main <- function(nplayers, max_rounds, verbose = FALSE){
           lot_price <- board %>% get_board_field(new_position, "price")
           if(get_player_field(players, current_player_id, "balance") > lot_price){
             board %<>% change_lot_owner(current_player_id, new_position)
-            players %<>% 
-              change_balance(current_player_id, -1 * lot_price) 
+            players %<>% change_balance(current_player_id, -1 * lot_price) 
           } else {                                                              # Needs balance > 1 after buying lot
             if(verbose %in% c("all", "game")){
               write(paste(current_player_id, "looses due to insufficient funds"),"")
@@ -64,6 +63,8 @@ main <- function(nplayers, max_rounds, verbose = FALSE){
         # ============ Chance cards ===============
       } else if(position_type == "chance"){
         # TODO...
+        chance_card <- chance_deck %<>% pick_card(type = "top")
+        
       }
     }
     # ============ Round stat update ==========
