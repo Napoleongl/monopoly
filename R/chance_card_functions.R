@@ -12,7 +12,7 @@ give_gift_to_player = function(.players, .board, player_id, amount = NULL){
     write(paste("Player", player_id, "gives", amount, "money to player", other_player), "")
   }
   .players %<>% transfer_balance(other_player, player_id, amount)
-  return(list(players = .players, board = .board))
+  return(list(players = .players, board = .board, game_alive = TRUE))
 },
 
 get_gift_from_all = function(.players, .board, player_id, amount = NULL){
@@ -27,7 +27,7 @@ get_gift_from_all = function(.players, .board, player_id, amount = NULL){
   if(verbose %in% c("all", "chance")){
     write(paste("Player", player_id, "gets",amount, "money from every player!"), "")
     }
-  return(list(players = .players, board = .board))
+  return(list(players = .players, board = .board, game_alive = TRUE))
 },
 
 get_gift_from_bank = function(.players, .board, player_id, amount = NULL){
@@ -37,10 +37,10 @@ get_gift_from_bank = function(.players, .board, player_id, amount = NULL){
     write(paste("Player", player_id, "gets a gift of", amount, "money!"), "")
   }
   .players %<>% change_balance(player_id, +2) 
-  return(list(players = .players, board = .board))
+  return(list(players = .players, board = .board, game_alive = TRUE))
 },
 
-get_out_of_jail_card = function(.players, .board, player_id){
+get_out_of_jail = function(.players, .board, player_id){
   # Player gets a card that lets them out of jail without bail. Card is kept
   # until needed.
   if(verbose %in% c("all", "chance")){
@@ -48,7 +48,7 @@ get_out_of_jail_card = function(.players, .board, player_id){
   }
   .players %<>% set_player_field(player_id = player_id, method = "set", 
                                  field = "get_out_of_jail_card", value = TRUE)
-  return(list(players = .players, board = .board))
+  return(list(players = .players, board = .board, game_alive = TRUE))
 },
 
 # ============ Board cards ============
@@ -63,13 +63,15 @@ move_to_and_buy_or_pay = function(.players, .board, player_id, groups = NULL){
   # Primarily select the first empty lot in a group, then the empty lot where 
   # the other is owned, then a lot owned by player, then something else...
   groups <- sample(.board %>% filter(type == "lot") %>% pull(lot_group), 2)
+  lot_id <- sample(.board %>% filter(lot_group %in% groups) %>% pull(ID), 1)    # TODO: replace with proper logic...
+  
   if(verbose %in% c("all", "chance")){
-    write(paste("Player", player_id, ""), "")
+    write(paste("Player", player_id, "moves to lot", lot_id), "")
     }
-  return(list(players = .players, board = .board))
+  return(lot_buy_or_pay(.players, .board, player_id, lot_id))
 },
 
-move_to_and_steal = function(.players, .board, player_id, lot_id){
+move_to_and_steal = function(.players, .board, player_id, lot_id = NULL){
   # The player is instructed to move to a specific lot and buy it regardless
   # of whether it is already owned or not. 
   # Potentially game ending if the player has balance <= lot price.
@@ -95,7 +97,7 @@ move_to_and_steal = function(.players, .board, player_id, lot_id){
     .board %<>% change_lot_owner(player_id, lot_id)
     .players %<>% transfer_balance(previous_owner, player_id, -1 * lot_price) 
   }
-  return(list(players = .players, board = .board))
+  return(list(players = .players, board = .board, game_alive = TRUE))
 }
 )}
 # ============ Spare card =============
@@ -104,26 +106,29 @@ move_to_and_steal = function(.players, .board, player_id, lot_id){
 #   if(verbose %in% c("all", "chance")){
 #     write(paste("Player", player_id, ""), "")
 #     }
-#   return(list(players = .players, board = .board))
+#   return(list(players = .players, board = .board, game_alive = TRUE))
 # }
 
 # ============ Pick a card, any card! =
-pick_card <- function(card_types, type = "random", card_probs = NULL, ...){
+pick_card <- function(card_types, player_id, type = "random", card_probs = NULL, ...){
   # Simulates picking a card from the deck of chance cards. 
   # Type is either "random" for any possible card or the name of a card function.
   # If type is specified then addition card arguments like amount or lot group
   # are supplied via "...".
-  if(type == "random"){
+  if(!(type %in% names(card_types))){
     if(is.null(card_probs)){
-      card_probs <- c(move_to_and_buy_or_pay     = 4, get_gift_from_all     = 2,
-                      get_gift_from_bank      = 4, get_out_of_jail_card  = 4,
-                      give_gift_to_player  = 0, move_to_and_steal     = 4)
+      card_probs <- c(give_gift_to_player      = 2,  get_gift_from_all      = 1,
+                      get_gift_from_bank       = 2,  get_out_of_jail_card   = 2,
+                      move_to_and_buy_or_pay   = 4,  move_to_and_steal      = 2) # TODO: Get proper card distribution
     } else {
       card_probs <- card_probs[names(card_types)] # sorting necessary since sample() doesn't honor names of prob-vector vs names(x)
     }
-    card <- sample(card_types, 1, prob  = card_types)
-  } else {
-    card <- card_types[[type]]
+    type <- sample(names(card_types), 1,prob =  card_probs)
   }
-  return(card)
+
+  if(verbose %in% c("all", "chance")){
+    write(paste("Player", player_id, "picks a", type, "card."), "")
+  }
+
+  return(card_types[[type]])
 }
