@@ -91,18 +91,31 @@ testthat::test_that("Change of balances",{
 })
 
 transfer_balance <- function(.players, player_to, player_from, amount){
-  # Moves funds between players, no check for correctness!
+  # Moves funds between players, does not overcharge if balance < amount
+  senders_balance <- get_player_field(.players, player_from, "balance")
+  if(senders_balance < amount){
+    amount <- senders_balance
+    if(verbose %in% c("all", "player")){
+      write(paste("Player", player_from, "has insufficient funds, only transferring",
+                  senders_balance))
+    }
+  }
   .players %>% 
     change_balance(player_to, amount) %>% 
     change_balance(player_from, -1 * amount)
 }
 
 testthat::test_that("Transfers",{
+  verbose <<- FALSE
   players <- create_players()
   testthat::expect_equal(players %>% 
                            transfer_balance(0,1,5) %>% 
                            pull(balance), 
                          c(25,15))
+  testthat::expect_equal(players %>% 
+                           transfer_balance(0,1,25) %>% 
+                           pull(balance), 
+                         c(40,0))
   testthat::expect_equal(players %>% 
                            transfer_balance(1,0,10) %>% 
                            transfer_balance(1,0,10) %>% 
