@@ -2,6 +2,7 @@ main <- function(nplayers, max_rounds, verbose = FALSE){
   # ============ Set up =====================
   players <- create_players(letters[1:nplayers], 22 - (2 * nplayers))
   board <- create_board()
+  chance_deck <- create_deck()
   current_player_id <- 0L
   rounds <- 0
   # ============ Actual Game ================
@@ -22,27 +23,11 @@ main <- function(nplayers, max_rounds, verbose = FALSE){
       position_type  <- board %>% get_board_field(new_position, "type")
       # ============ Lots a' logic ==============
       if(position_type == "lot"){
-        position_owner <- board %>% get_board_field(new_position, "owner")
-        if(is.na(position_owner)){                                              # Empty buyable lot
-          lot_price <- board %>% get_board_field(new_position, "price")
-          if(get_player_field(players, current_player_id, "balance") > lot_price){
-            board %<>% change_lot_owner(current_player_id, new_position)
-            players %<>% change_balance(current_player_id, -1 * lot_price) 
-          } else {                                                              # Needs balance > 1 after buying lot
-            if(verbose %in% c("all", "game")){
-              write(paste(current_player_id, "looses due to insufficient funds"),"")
-            }
-            break
-            } 
-        } else if(position_owner == current_player_id){                         # Own lot - End turn
-        } else if(position_owner != current_player_id){                         # Lot owned buy someone else - pay rent!
-          lot_price <- board %>% get_board_field(new_position, "price")
-          double_rent <- board %>% owns_whole_lot_group(position_owner, new_position)
-          players %>% transfer_balance(position_owner, current_player_id, 
-                                       lot_price * (1 + double_rent))
-        } else {
-          stop("Lot owner not in (NA, current player or other player)!!!")      # Shouldn't happen...
-        }
+        pb_list <- lot_buy_or_pay(players, board, current_player_id, new_position)
+        board <- pb_list[["board"]]
+        players <- pb_list[["players"]]
+        # 
+        if(!pb_list[["game_alive"]]){ break }
         
         # ============ Prison logic ===============
       } else if(position_type == "prison"){
@@ -63,8 +48,12 @@ main <- function(nplayers, max_rounds, verbose = FALSE){
         # ============ Chance cards ===============
       } else if(position_type == "chance"){
         # TODO...
-        chance_card <- chance_deck %<>% pick_card(type = "top")
-        
+        chance_card <- pick_card(chance_deck, type = "random", player_id = current_player_id)
+        pb_list <- chance_card(players, board, current_player_id)
+        board <- pb_list[["board"]]
+        players <- pb_list[["players"]]
+        # 
+        if(!pb_list[["game_alive"]]){ break }
       }
     }
     # ============ Round stat update ==========
