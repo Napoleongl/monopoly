@@ -61,5 +61,5 @@ main <- function(nplayers, max_rounds, verbose = FALSE){
     current_player_id <- (current_player_id +1) %% nplayers
     rounds <- rounds + 1
   }
-  end_game_stats(players, board, rounds==(max_rounds*nplayers))
+  end_game_stats(players, board, rounds, max_rounds*nplayers)
 }
