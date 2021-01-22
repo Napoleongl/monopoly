@@ -8,10 +8,10 @@ option_list <- list(
   make_option(c("-o", "--output_dir"), type = "character", default = "analysis",
               help = "Path to store analysis graphs in [default %default]",
               dest = "output_dir"),
-  make_option(c("-p", "--players"), type = "integer", default = 3,
+  make_option(c("-p", "--players"), type = "integer", default = 2,
               help = "Number of players in each game [default %default]",
               dest = "nplayers"),
-  make_option(c("-g", "--games"), type = "integer", default = 1500,
+  make_option(c("-g", "--games"), type = "integer", default = 375,
               help = "Number of games played per core [default %default]",
               dest = "ngames")
 )
@@ -62,7 +62,7 @@ players <- win_lose_stats %>%
 player_colours <- viridisLite::cividis(n = length(players), begin = 0.01,
                                        end=0.9, direction = -1)
 
-win_lose_stats %>% mutate(player = factor(player, levels = players))
+win_lose_stats %<>% mutate(player = factor(player, levels = players))
 
 ggplot(win_lose_stats) + 
   aes(y = outcome, x = proportion, group = player, fill = player) +
