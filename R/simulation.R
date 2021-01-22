@@ -11,7 +11,7 @@ option_list <- list(
   make_option(c("-p", "--players"), type = "integer", default = 2,
               help = "Number of players in each game [default %default]",
               dest = "nplayers"),
-  make_option(c("-g", "--games"), type = "integer", default = 10,
+  make_option(c("-g", "--games"), type = "integer", default = 25,
               help = "Number of games played per core [default %default]",
               dest = "ngames"),
   make_option(c("-s", "--savedir"), type = "character", default = "data",
