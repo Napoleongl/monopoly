@@ -99,7 +99,7 @@ testthat::test_that("Owns entire group", {
                            owns_whole_lot_group(2, 1))
 })
 
-lot_buy_or_pay <- function(.player, .board, player_id, lot_id){
+lot_buy_or_pay <- function(.players, .board, player_id, lot_id){
   position_owner <- .board %>% get_board_field(lot_id, "owner")
   game_alive <- TRUE
   if(is.na(position_owner)){                                              # Empty buyable lot
