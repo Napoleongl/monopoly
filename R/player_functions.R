@@ -197,7 +197,7 @@ testthat::test_that("Prison system", {
 
 
 # ============ End game  ==============
-end_game_stats <- function(.players, .board, premature_end){
+end_game_stats <- function(.players, .board, current_round, max_rounds){
   # ============ Winner calculations ====
   if(exists("end_game_browser")) {browser()}
   winning_balance <- .players %>% pull(balance) %>% max()
@@ -238,6 +238,7 @@ end_game_stats <- function(.players, .board, premature_end){
   }
   # ============ Misc ===================
   all_imprisoned <- .players %>% pull(imprisoned) %>% all() %>% isTRUE()
+  premature_end  <- !(current_round==max_rounds) %>% isTRUE()
   # ============ Board calculations =====
   winning_lots <- .board %>% filter(owner == winner) %>% pull(ID)
   loosing_lots <- .board %>% filter(owner %in% looser) %>% pull(ID)
@@ -255,7 +256,8 @@ end_game_stats <- function(.players, .board, premature_end){
                 loosing_balance, "."), "")
   }
   # ============ Return =================
-  tibble(winner          = winner,
+  tibble(rounds_played   = current_round,
+         winner          = winner,
          winning_balance = winning_balance, 
          winning_lots    = list(winning_lots),
          win_type        = win_type,
