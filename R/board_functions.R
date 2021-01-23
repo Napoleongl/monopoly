@@ -99,28 +99,36 @@ testthat::test_that("Owns entire group", {
                            owns_whole_lot_group(2, 1))
 })
 
-lot_buy_or_pay <- function(.players, .board, player_id, lot_id){
+lot_buy_or_pay <- function(.players, .board, player_id, lot_id, lot_price = NULL){
   position_owner <- .board %>% get_board_field(lot_id, "owner")
   game_alive <- TRUE
-  if(is.na(position_owner)){                                              # Empty buyable lot
-    lot_price <- .board %>% get_board_field(lot_id, "price")
+  if(is.na(position_owner)){                                                    # Empty buyable lot
+    if(is.null(lot_price)){
+      lot_price <- .board %>% get_board_field(lot_id, "price")
+    } 
     if(get_player_field(.players, player_id, "balance") > lot_price){
       .board %<>% change_lot_owner(player_id, lot_id)
       .players %<>% change_balance(player_id, -1 * lot_price) 
-    } else {                                                              # Needs balance > 1 after buying lot
+    } else {                                                                    # Needs balance > 1 after buying lot
       if(verbose %in% c("all", "game")){
         write(paste(player_id, "looses due to insufficient funds"),"")
       }
       game_alive <- FALSE
     } 
-  } else if(position_owner == player_id){                         # Own lot - End turn
-  } else if(position_owner != player_id){                         # Lot owned buy someone else - pay rent!
-    lot_price <- .board %>% get_board_field(lot_id, "price")
+  } else if(position_owner == player_id){                                       # Own lot - End turn
+  } else if(position_owner != player_id){                                       # Lot owned buy someone else - pay rent!
     double_rent <- .board %>% owns_whole_lot_group(position_owner, lot_id)
-    .players %<>% transfer_balance(position_owner, player_id, 
-                                  lot_price * (1 + double_rent))
+    lot_rent <- .board %>% get_board_field(lot_id, "price")* (1 + double_rent)
+    if(get_player_field(.players, player_id, "balance") > lot_rent){
+      .players %<>% transfer_balance(position_owner, player_id, lot_rent)
+    } else {                                                                    # Needs balance > 1 after paying rent
+      if(verbose %in% c("all", "game")){
+        write(paste(player_id, "looses due to insufficient funds"),"")
+      }
+      game_alive <- FALSE
+    }
   } else {
-    stop("Lot owner not in (NA, current player or other player)!!!")      # Shouldn't happen...
+    stop("Lot owner not in (NA, current player or other player)!!!")            # Shouldn't happen...
   }
   return(list(players = .players, board = .board, game_alive = game_alive))
 }
