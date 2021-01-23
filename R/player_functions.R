@@ -109,6 +109,10 @@ testthat::test_that("Transfers",{
   verbose <<- FALSE
   players <- create_players()
   testthat::expect_equal(players %>% 
+                           transfer_balance(0,1,0) %>% 
+                           pull(balance), 
+                         c(20,20))
+  testthat::expect_equal(players %>% 
                            transfer_balance(0,1,5) %>% 
                            pull(balance), 
                          c(25,15))
