@@ -90,7 +90,7 @@ imprison = function(.players, .board, player_id){                         # 1 Ca
   return(list(players = .players, board = .board, game_alive = TRUE))
 },
 
-move_to_lot <- function(.players, .board, player_id, lot_id = NULL){            # 2 Cards
+move_to_lot = function(.players, .board, player_id, lot_id = NULL){            # 2 Cards
   # The player is simply instructed to go to a specified lot. 
   # Which one seems to vary between versions so her it is simply randomised
   # Potentially game ending if the player has balance <= lot price. This is 
