@@ -90,23 +90,67 @@ imprison = function(.players, .board, player_id){                         # 1 Ca
   return(list(players = .players, board = .board, game_alive = TRUE))
 },
 
-move_to_and_get_or_pay = function(.players, .board, player_id, groups = NULL, lot = NULL){ # 3 cards with 2 groups, 3 cards with one group, 2 cards with lots
+move_to_lot <- function(.players, .board, player_id, lot_id = NULL){            # 2 Cards
+  # The player is simply instructed to go to a specified lot. 
+  # Which one seems to vary between versions so her it is simply randomised
+  # Potentially game ending if the player has balance <= lot price. This is 
+  # however handled in the lot_buy_or_pay_rent-function.
+  
+  if(is.null(lot_id)){
+    lot_id <- .board %>% filter(type == "lot") %>% pull(ID) %>% sample(1)
+  }
+  return(lot_buy_or_pay(.players, .board, player_id, lot_id))
+},
+
+move_to_group_and_get_or_pay = function(.players, .board, player_id, groups = NULL){  # 3 Cards with 2 groups, 3 Cards with one group
   # The player is instructed to go to any lot of group x or y and if it is vacant
   # get it free, else pay rent to the owner (or do nothing if self owned).
   # The only place where there is actual strategy in the game as you need to 
   # choose which lot to go to in case of multiple options!
-  # Potentially game ending if the player has balance <= lot price.
+  # Potentially game ending if the player has balance <= lot price. This is 
+  # however handled in the lot_buy_or_pay_rent-function.
   
   # TODO: figure out strategy and turn to logic:
   # Primarily select the first empty lot in a group, then the empty lot where 
   # the other is owned, then a lot owned by player, then something else...
-  groups <- sample(.board %>% filter(type == "lot") %>% pull(lot_group), ngroups)
-  lot_id <- sample(.board %>% filter(lot_group %in% groups) %>% pull(ID), 1)    # TODO: replace with proper logic...
+  
+  if(is.null(groups)){ # normal behaviour, either one or two random lot groups to go to
+    ngroups <- sample(c(1,2),1)
+    groups <- sample(.board %>% filter(type == "lot") %>% pull(lot_group), ngroups)
+  # } else if(is.integer(groups)) { # To specify number of groups, not used currently
+  #   ngroups <- groups
+  #   groups <- sample(.board %>% filter(type == "lot") %>% pull(lot_group), ngroups)
+  } else if(isTRUE(all(groups %in% (.board %>% filter(type == "lot") %>% pull(lot_group))))){ 
+    ngroups <- length(groups) 
+  } else {
+    stop("Invalid groups specified.")
+  }
+  
+  group_lots <- .board %>% filter(lot_group %in% groups)
+  vacant_lots <- group_lots %>% 
+    filter(is.na(owner)) %>%
+    arrange(desc(price)) %>% 
+    pull(ID)
+  owned_lots <- group_lots %>% 
+    filter(owner == player_id) %>%
+    pull(ID)
+  opponent_lots <- group_lots %>% 
+    filter(owner != player_id && !is.na(owner)) %>%
+    order(price) #TODO - account for double rent..
+    pull(ID)
+    
+  if(length(vacant_lots) > 0){   # Best option - acquire most expensive lot possible for free, 
+    lot_id <- vacant_lots[1]
+  } else if(length(owned_lots) > 0){ # Second option - Go to an already owned lot
+    lot_id <- sample(owned_lots, 1)
+  } else if(length(opponent_lots) > 0){ # Worst option - go to cheapest of opponents lots. 
+    lot_id <- opponent_lots[1]
+  } else { stop("Groups contains no lots to move to...") } # Even worse - errors
   
   if(verbose %in% c("all", "chance")){
     write(paste("Player", player_id, "moves to lot", lot_id), "")
     }
-  return(lot_buy_or_pay(.players, .board, player_id, lot_id))
+  return(lot_buy_or_pay(.players, .board, player_id, lot_id, lot_price = 0))
 },
 
 move_to_and_steal = function(.players, .board, player_id, lot_id = NULL){       # 3 Cards
@@ -155,11 +199,17 @@ pick_card <- function(card_types, player_id, type = "random", card_probs = NULL,
   # are supplied via "...".
   if(!(type %in% names(card_types))){
     if(is.null(card_probs)){
-      card_probs <- c(give_gift_to_player    = 0,  give_gift_to_bank        = 1,  
-                      get_gift_from_all      = 1,  get_gift_from_bank       = 3,  
-                      get_out_of_jail        = 1,  goto_go                  = 2,
-                      imprison               = 1,  move_to_and_get_or_pay   = 0, # since not yety implemented...  
-                      move_to_and_steal      = 3) 
+      card_probs <- c(give_gift_to_player          = 0, # since it may not exist.
+                      give_gift_to_bank            = 1,  
+                      get_gift_from_all            = 1,  
+                      get_gift_from_bank           = 3,  
+                      get_out_of_jail              = 1,  
+                      goto_go                      = 2,
+                      imprison                     = 1,  
+                      move_to_lot                  = 2,
+                      move_to_group_and_get_or_pay = 6, # since not yety implemented...  
+                      move_to_and_steal            = 3
+                      ) 
     } else {
       card_probs <- card_probs[names(card_types)] # sorting necessary since sample() doesn't honor names of prob-vector vs names(x)
     }
