@@ -78,25 +78,36 @@ get_board_field <- function(.board, piece_id, field){
   .board %>% filter(ID == piece_id) %>% pull(field)
 }
 
-owns_whole_lot_group <- function(.board, player_id, piece_id){
+owns_whole_lot_group <- function(.board, pieces){
+  sapply(pieces, function(piece_id){
   current_group <- .board %>% get_board_field(piece_id, "lot_group")
   owners_in_group <- .board %>% filter(lot_group == current_group) %>% pull(owner)
   isTRUE(length(unique(owners_in_group)) == 1)
+  })
 }
 testthat::test_that("Owns entire group", {
   board <- create_board()
   testthat::expect_true(board %>% 
                            change_lot_owner(1, 1) %>% 
                            change_lot_owner(1, 2) %>% 
-                           owns_whole_lot_group(1, 1))
+                           owns_whole_lot_group(1))
   testthat::expect_false(board %>% 
                            change_lot_owner(1, 1) %>% 
                            change_lot_owner(2, 2) %>% 
-                           owns_whole_lot_group(1, 1))
+                           owns_whole_lot_group(1))
   testthat::expect_false(board %>% 
                            change_lot_owner(1, 1) %>% 
                            change_lot_owner(2, 2) %>% 
-                           owns_whole_lot_group(2, 1))
+                           owns_whole_lot_group(1))
+  testthat::expect_equal(board %>% 
+                           change_lot_owner(1, 1) %>% 
+                           change_lot_owner(1, 2) %>% 
+                           change_lot_owner(1, 7) %>% 
+                           change_lot_owner(2, 4) %>% 
+                           change_lot_owner(2, 5) %>% 
+                           change_lot_owner(2, 8) %>% 
+                           owns_whole_lot_group(c(1,4,7)), 
+                         c(TRUE, TRUE, FALSE))
 })
 
 lot_buy_or_pay <- function(.players, .board, player_id, lot_id, lot_price = NULL){
@@ -117,7 +128,7 @@ lot_buy_or_pay <- function(.players, .board, player_id, lot_id, lot_price = NULL
     } 
   } else if(position_owner == player_id){                                       # Own lot - End turn
   } else if(position_owner != player_id){                                       # Lot owned buy someone else - pay rent!
-    double_rent <- .board %>% owns_whole_lot_group(position_owner, lot_id)
+    double_rent <- .board %>% owns_whole_lot_group(lot_id)
     lot_rent <- .board %>% get_board_field(lot_id, "price")* (1 + double_rent)
     if(get_player_field(.players, player_id, "balance") > lot_rent){
       .players %<>% transfer_balance(position_owner, player_id, lot_rent)

@@ -136,7 +136,9 @@ move_to_group_and_get_or_pay = function(.players, .board, player_id, groups = NU
     pull(ID)
   opponent_lots <- group_lots %>% 
     filter(owner != player_id && !is.na(owner)) %>%
-    order(price) #TODO - account for double rent..
+    mutate(double_rent = owns_whole_lot_group(ID),
+           rent = price * (1 + double_rent)) %>% 
+    order(rent) %>% 
     pull(ID)
     
   if(length(vacant_lots) > 0){   # Best option - acquire most expensive lot possible for free, 
