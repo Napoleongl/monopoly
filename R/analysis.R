@@ -8,10 +8,10 @@ option_list <- list(
   make_option(c("-o", "--output_dir"), type = "character", default = "analysis",
               help = "Path to store analysis graphs in [default %default]",
               dest = "output_dir"),
-  make_option(c("-p", "--players"), type = "integer", default = 2,
+  make_option(c("-p", "--players"), type = "integer", default = 4,
               help = "Number of players in each game [default %default]",
               dest = "nplayers"),
-  make_option(c("-g", "--games"), type = "integer", default = 375,
+  make_option(c("-g", "--games"), type = "integer", default = 4500,
               help = "Number of games played per core [default %default]",
               dest = "ngames")
 )
@@ -45,6 +45,33 @@ source("R/board_functions.R")
 # ============ Data import ================
 load(save_file)
 board <- create_board()
+
+players <- games_data %>% 
+  select(player = winner) %>%
+  union(games_data %>% 
+          select(player = looser)) %>% 
+  arrange(player) %>% 
+  pull(player)
+nplayers <- length(players)
+
+player_colours <- setNames(viridisLite::cividis(n = 4, 
+                                                begin = 0.01, 
+                                                end=0.9, 
+                                                direction = 1), 
+                           0:3) 
+lot_colours <- lot_colours
+one_colour <- player_colours[1]
+two_colour <- player_colours[1]
+
+# ============ Game length ================
+ggplot(games_data) + 
+  aes(x = rounds_played) + 
+  geom_histogram(fill = one_colour, bins = (max(games_data$rounds_played)-3)) +
+  labs(x = "Rounds", y = "No. of\ngames",
+       title = "Distribution of game length")
+
+
+table(games_data$rounds_played)
 # ============ Win-loose stats ============
 win_lose_stats <- games_data %>% 
   select(winner, looser) %>% 
@@ -52,23 +79,17 @@ win_lose_stats <- games_data %>%
                names_to = "outcome", 
                values_to = "player") %>% 
   group_by(outcome, player) %>% 
-  summarise(proportion=n()/opts$ngames)
-
-players <- win_lose_stats %>% 
-  ungroup() %>% 
-  group_by(player) %>% 
-  summarise()%>% 
-  pull(player)
-player_colours <- viridisLite::cividis(n = length(players), begin = 0.01,
-                                       end=0.9, direction = -1)
-
-win_lose_stats %<>% mutate(player = factor(player, levels = players))
+  summarise(proportion=n()/opts$ngames) %>% 
+  mutate(player = factor(player, levels = (nplayers -1):0)) %>% 
+  arrange(player)
 
 ggplot(win_lose_stats) + 
-  aes(y = outcome, x = proportion, group = player, fill = player) +
+  aes(y = outcome, x = proportion, group = player, fill = player, label = round(proportion,2)) +
   geom_col() +
   scale_fill_manual("Player", values = player_colours) +
-  labs(x = "", y = "", title = "Proportion of outcomes by player")
+  geom_label(fill = alpha("grey95",.6), colour = "grey15",position = position_stack(vjust = 0.5)) +
+  labs(x = "", y = "", title = "Proportion of outcomes by player")+
+  theme(panel.grid.major.y = element_blank())
   
 # ============ Win-loose lots =============
 loosing_lots <- do.call(c,  games_data$loosing_lots) %>% 
