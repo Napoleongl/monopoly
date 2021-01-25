@@ -5,7 +5,7 @@ option_list <- list(
   make_option(c("-c", "--cores"), type = "integer", default = parallel::detectCores()-1,
               help = "Number of cores to use [default %default]",
               dest = "ncores"),
-  make_option(c("-r", "--rounds"), type = "integer", default = 100,
+  make_option(c("-r", "--rounds"), type = "integer", default = 40,
               help = "Maximum turns for each player before calling it quits. [default %default]",
               dest = "rounds"),
   make_option(c("-p", "--players"), type = "integer", default = 2,
