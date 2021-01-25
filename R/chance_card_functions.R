@@ -102,7 +102,7 @@ move_to_lot = function(.players, .board, player_id, lot_id = NULL){            #
   return(lot_buy_or_pay(.players, .board, player_id, lot_id))
 },
 
-move_to_group_and_get_or_pay = function(.players, .board, player_id, groups = NULL){  # 3 Cards with 2 groups, 3 Cards with one group
+move_to_group_and_get_or_pay = function(.players, .board, player_id, lot_groups = NULL){  # 3 Cards with 2 groups, 3 Cards with one group
   # The player is instructed to go to any lot of group x or y and if it is vacant
   # get it free, else pay rent to the owner (or do nothing if self owned).
   # The only place where there is actual strategy in the game as you need to 
@@ -114,19 +114,21 @@ move_to_group_and_get_or_pay = function(.players, .board, player_id, groups = NU
   # Primarily select the first empty lot in a group, then the empty lot where 
   # the other is owned, then a lot owned by player, then something else...
   
-  if(is.null(groups)){ # normal behaviour, either one or two random lot groups to go to
+  if(is.null(lot_groups)){ # normal behaviour, either one or two random lot groups to go to
     ngroups <- sample(c(1,2),1)
-    groups <- sample(.board %>% filter(type == "lot") %>% pull(lot_group), ngroups)
+    lot_groups <- sample(.board %>% filter(type == "lot") %>% pull(lot_group), ngroups)
   # } else if(is.integer(groups)) { # To specify number of groups, not used currently
   #   ngroups <- groups
-  #   groups <- sample(.board %>% filter(type == "lot") %>% pull(lot_group), ngroups)
-  } else if(isTRUE(all(groups %in% (.board %>% filter(type == "lot") %>% pull(lot_group))))){ 
-    ngroups <- length(groups) 
+  #   lot_groups <- sample(.board %>% filter(type == "lot") %>% pull(lot_group), ngroups)
+  } else if(isTRUE(all(lot_groups %in% (.board %>% filter(type == "lot") %>% pull(lot_group))))){ 
+    ngroups <- length(lot_groups) 
   } else {
     stop("Invalid groups specified.")
   }
-  
-  group_lots <- .board %>% filter(lot_group %in% groups)
+  if(verbose %in% c("all", "chance")){
+    write(paste("Player", player_id, "moves can choose between groups", paste0(lot_groups, collapse = ", ")), "")
+  }
+  group_lots <- .board %>% filter(lot_group %in% lot_groups)
   vacant_lots <- group_lots %>% 
     filter(is.na(owner)) %>%
     arrange(desc(price)) %>% 
@@ -135,17 +137,23 @@ move_to_group_and_get_or_pay = function(.players, .board, player_id, groups = NU
     filter(owner == player_id) %>%
     pull(ID)
   opponent_lots <- group_lots %>% 
-    filter(owner != player_id && !is.na(owner)) %>%
-    mutate(double_rent = owns_whole_lot_group(ID),
-           rent = price * (1 + double_rent)) %>% 
-    order(rent) %>% 
-    pull(ID)
+    filter(owner != player_id & !is.na(owner))
     
   if(length(vacant_lots) > 0){   # Best option - acquire most expensive lot possible for free, 
+    if(verbose %in% c("all", "chance")){
+      write(paste("Player", player_id, "moves can choose between lots", paste0(vacant_lots, collapse = ", ")), "")
+    }
     lot_id <- vacant_lots[1]
-  } else if(length(owned_lots) > 0){ # Second option - Go to an already owned lot
+  } else if(length(owned_lots) == 1){ # Second option - Go to an already owned lot
+    lot_id <- owned_lots
+  } else if(length(owned_lots) > 1){ # Second option - Go to an already owned lot
     lot_id <- sample(owned_lots, 1)
-  } else if(length(opponent_lots) > 0){ # Worst option - go to cheapest of opponents lots. 
+  } else if(nrow(opponent_lots) > 0){ # Worst option - go to cheapest of opponents lots. 
+    opponent_lots %<>% 
+      mutate(double_rent = owns_whole_lot_group(opponent_lots, ID),
+             rent = price * (1 + double_rent)) %>% 
+    arrange(rent) %>% 
+    pull(ID)
     lot_id <- opponent_lots[1]
   } else { stop("Groups contains no lots to move to...") } # Even worse - errors
   
