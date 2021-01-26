@@ -8,14 +8,10 @@ option_list <- list(
   make_option(c("-o", "--output_dir"), type = "character", default = "analysis",
               help = "Path to store analysis graphs in [default %default]",
               dest = "output_dir"),
-  make_option(c("-p", "--players"), type = "integer", default = 4,
-              help = "Number of players in each game [default %default]",
-              dest = "nplayers"),
   make_option(c("-g", "--games"), type = "integer", default = 4500,
               help = "Number of games played per core [default %default]",
               dest = "ngames")
 )
-
 
 opt_parser <- OptionParser(option_list=option_list);
 opts       <- parse_args(opt_parser);
